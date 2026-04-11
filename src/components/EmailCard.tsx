@@ -1,17 +1,20 @@
 import { Paper, Text, Group, Stack, Box } from '@mantine/core';
 import { useNavigate } from 'react-router-dom';
-import type { Email } from '@/types/email';
+import type { Email, Account } from '@/types/email';
 import IntentBadge from '@/components/IntentBadge';
+import AccountBadge from '@/components/AccountBadge';
 import { formatRelativeTime } from '@/utils/formatDate';
 
 interface EmailCardProps {
   email: Email;
+  account?: Account;
 }
 
 /**
  * Displays a summary card for an email in the dashboard list.
+ * Shows which account the email belongs to via a color-coded badge.
  */
-const EmailCard = ({ email }: EmailCardProps) => {
+const EmailCard = ({ email, account }: EmailCardProps) => {
   const navigate = useNavigate();
 
   return (
@@ -27,6 +30,9 @@ const EmailCard = ({ email }: EmailCardProps) => {
         border: email.isRead
           ? '1px solid rgba(148, 163, 184, 0.05)'
           : '1px solid rgba(59, 130, 246, 0.2)',
+        borderLeft: account
+          ? `3px solid ${account.color}`
+          : undefined,
         transition: 'all 0.2s ease',
       }}
       className="hover:scale-[1.01]"
@@ -54,13 +60,18 @@ const EmailCard = ({ email }: EmailCardProps) => {
               {email.subject}
             </Text>
           </Group>
-          <IntentBadge intent={email.intent} />
+          <Group gap="xs" wrap="nowrap">
+            <IntentBadge intent={email.intent} />
+          </Group>
         </Group>
 
         <Group justify="space-between" wrap="nowrap">
-          <Text size="xs" c="dimmed" truncate>
-            {email.sender}
-          </Text>
+          <Group gap="xs" wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
+            <Text size="xs" c="dimmed" truncate>
+              {email.sender}
+            </Text>
+            <AccountBadge account={account} />
+          </Group>
           <Text size="xs" c="dimmed" style={{ flexShrink: 0 }}>
             {formatRelativeTime(email.timestamp)}
           </Text>
