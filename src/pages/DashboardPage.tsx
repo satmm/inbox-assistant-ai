@@ -11,9 +11,13 @@ import {
   SegmentedControl,
   TextInput,
   Button,
+  Popover,
+  Tooltip,
 } from '@mantine/core';
-import { DatePickerInput } from '@mantine/dates';
+import { DatePicker } from '@mantine/dates';
 import { useDisclosure } from '@mantine/hooks';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import LogoutIcon from '@mui/icons-material/Logout';
 import { useEmails } from '@/hooks/useEmails';
 import EmailCard from '@/components/EmailCard';
 import EmailSkeleton from '@/components/EmailSkeleton';
@@ -151,17 +155,20 @@ const DashboardPage = () => {
                 + Add Account
               </Button>
 
-              <ActionIcon
-                variant="subtle"
-                color="gray"
-                size="lg"
-                onClick={() => {
-                  // TODO: Replace with proper logout via auth provider
-                  navigate('/');
-                }}
-              >
-                <Text size="xs">Logout</Text>
-              </ActionIcon>
+              <Tooltip label="Logout" position="bottom" withArrow>
+                <ActionIcon
+                  variant="light"
+                  color="red"
+                  size="lg"
+                  radius="md"
+                  onClick={() => {
+                    // TODO: Replace with proper logout via auth provider
+                    navigate('/');
+                  }}
+                >
+                  <LogoutIcon style={{ fontSize: 18 }} />
+                </ActionIcon>
+              </Tooltip>
             </Group>
           </Group>
         </Container>
@@ -171,22 +178,51 @@ const DashboardPage = () => {
       <Container size="lg" py="md">
         <Stack gap="md">
           <Group gap="sm" wrap="wrap">
-            <DatePickerInput
-              placeholder="Filter by date"
-              value={filters.date}
-              onChange={(date) => setFilter({ date })}
-              clearable
-              size="sm"
-              radius="md"
-              styles={{
-                input: {
-                  background: 'rgba(30, 41, 59, 0.6)',
+            <Popover position="bottom-start" shadow="md" radius="md">
+              <Popover.Target>
+                <Tooltip label="Filter by date" position="bottom" withArrow>
+                  <ActionIcon
+                    variant={filters.date ? 'filled' : 'subtle'}
+                    color={filters.date ? 'blue' : 'gray'}
+                    size="lg"
+                    radius="md"
+                  >
+                    <CalendarMonthIcon style={{ fontSize: 30 }} />
+                  </ActionIcon>
+                </Tooltip>
+              </Popover.Target>
+              <Popover.Dropdown
+                style={{
+                  background: 'rgba(15, 23, 42, 0.95)',
                   border: '1px solid rgba(148, 163, 184, 0.15)',
-                  color: '#e2e8f0',
-                },
-              }}
-              style={{ maxWidth: 200 }}
-            />
+                  backdropFilter: 'blur(12px)',
+                  padding: 0,
+                }}
+              >
+                <DatePicker
+                  value={filters.date}
+                  onChange={(date) => setFilter({ date })}
+                  styles={{
+                    calendarHeader: { color: '#e2e8f0' },
+                    monthCell: { color: '#94a3b8' },
+                    day: { color: '#e2e8f0' },
+                  }}
+                />
+                {filters.date && (
+                  <Box px="sm" pb="sm">
+                    <Button
+                      variant="subtle"
+                      color="gray"
+                      size="xs"
+                      fullWidth
+                      onClick={() => setFilter({ date: null })}
+                    >
+                      Clear date
+                    </Button>
+                  </Box>
+                )}
+              </Popover.Dropdown>
+            </Popover>
 
             <TextInput
               placeholder="Search emails..."
