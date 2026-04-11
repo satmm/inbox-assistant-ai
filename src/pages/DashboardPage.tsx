@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -10,24 +10,42 @@ import {
   ActionIcon,
   SegmentedControl,
   TextInput,
+  Button,
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
+import { useDisclosure } from '@mantine/hooks';
 import { useEmails } from '@/hooks/useEmails';
 import EmailCard from '@/components/EmailCard';
 import EmailSkeleton from '@/components/EmailSkeleton';
 import ErrorState from '@/components/ErrorState';
 import EmptyState from '@/components/EmptyState';
+import AccountSwitcher from '@/components/AccountSwitcher';
+import AddAccountModal from '@/components/AddAccountModal';
 import type { EmailIntent } from '@/types/email';
 import { notifications } from '@mantine/notifications';
 
 /**
- * Dashboard page — main email list view with filters.
+ * Dashboard page — main email list view with multi-account support and filters.
  * TODO: Add real-time email polling/websocket connection for live updates.
  */
 const DashboardPage = () => {
   const navigate = useNavigate();
-  const { emails, filters, isLoading, error, setFilter, resetFilters, fetchEmails } =
-    useEmails();
+  const [addModalOpened, { open: openAddModal, close: closeAddModal }] = useDisclosure(false);
+  const [isConnecting, setIsConnecting] = useState(false);
+
+  const {
+    emails,
+    accounts,
+    selectedAccountId,
+    filters,
+    isLoading,
+    error,
+    setFilter,
+    setSelectedAccountId,
+    resetFilters,
+    fetchEmails,
+    connectNewAccount,
+  } = useEmails();
 
   // Mock notification — simulates real-time email arrival
   useEffect(() => {
@@ -42,6 +60,12 @@ const DashboardPage = () => {
     return () => clearTimeout(timeout);
   }, []);
 
+  // Build a lookup map for accounts
+  const accountMap = useMemo(
+    () => new Map(accounts.map((a) => [a.id, a])),
+    [accounts]
+  );
+
   // Filter emails client-side by intent and search query
   const filteredEmails = emails.filter((email) => {
     if (filters.intent && email.intent !== filters.intent) return false;
@@ -53,6 +77,21 @@ const DashboardPage = () => {
       return false;
     return true;
   });
+
+  const handleConnectAccount = async (provider: 'gmail' | 'outlook' | 'yahoo') => {
+    setIsConnecting(true);
+    const account = await connectNewAccount(provider);
+    setIsConnecting(false);
+    if (account) {
+      closeAddModal();
+      notifications.show({
+        title: '✅ Account Connected',
+        message: `${account.email} has been linked successfully.`,
+        color: 'green',
+        autoClose: 4000,
+      });
+    }
+  };
 
   return (
     <Box
@@ -93,17 +132,37 @@ const DashboardPage = () => {
               </Text>
             </Title>
 
-            <ActionIcon
-              variant="subtle"
-              color="gray"
-              size="lg"
-              onClick={() => {
-                // TODO: Replace with proper logout via auth provider
-                navigate('/');
-              }}
-            >
-              <Text size="xs">Logout</Text>
-            </ActionIcon>
+            <Group gap="sm">
+              {/* Account Switcher */}
+              <AccountSwitcher
+                accounts={accounts}
+                selectedAccountId={selectedAccountId}
+                onSelect={setSelectedAccountId}
+              />
+
+              {/* Add Account Button */}
+              <Button
+                variant="light"
+                color="blue"
+                size="sm"
+                radius="md"
+                onClick={openAddModal}
+              >
+                + Add Account
+              </Button>
+
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                size="lg"
+                onClick={() => {
+                  // TODO: Replace with proper logout via auth provider
+                  navigate('/');
+                }}
+              >
+                <Text size="xs">Logout</Text>
+              </ActionIcon>
+            </Group>
           </Group>
         </Container>
       </Box>
@@ -167,19 +226,66 @@ const DashboardPage = () => {
             />
           </Group>
 
+          {/* Connected accounts count */}
+          {accounts.length > 0 && (
+            <Text size="xs" c="dimmed">
+              {accounts.length} account{accounts.length !== 1 ? 's' : ''} connected
+              {selectedAccountId !== 'all' && (
+                <> · Viewing: {accountMap.get(selectedAccountId)?.email}</>
+              )}
+            </Text>
+          )}
+
+          {/* Edge case: No accounts connected */}
+          {accounts.length === 0 && !isLoading && (
+            <Box
+              p="xl"
+              style={{
+                textAlign: 'center',
+                background: 'rgba(30, 41, 59, 0.4)',
+                borderRadius: 12,
+                border: '1px dashed rgba(148, 163, 184, 0.2)',
+              }}
+            >
+              <Text size="lg" fw={500} style={{ color: '#94a3b8' }} mb="xs">
+                No accounts connected
+              </Text>
+              <Text size="sm" c="dimmed" mb="md">
+                Connect your email account to get started with InboxAI.
+              </Text>
+              <Button variant="light" color="blue" onClick={openAddModal}>
+                + Connect Your First Account
+              </Button>
+            </Box>
+          )}
+
           {/* Email List */}
           {error && <ErrorState message={error} onRetry={fetchEmails} />}
           {isLoading && <EmailSkeleton />}
-          {!isLoading && !error && filteredEmails.length === 0 && <EmptyState />}
+          {!isLoading && !error && filteredEmails.length === 0 && accounts.length > 0 && (
+            <EmptyState />
+          )}
           {!isLoading && !error && filteredEmails.length > 0 && (
             <Stack gap="sm">
               {filteredEmails.map((email) => (
-                <EmailCard key={email.id} email={email} />
+                <EmailCard
+                  key={email.id}
+                  email={email}
+                  account={accountMap.get(email.accountId)}
+                />
               ))}
             </Stack>
           )}
         </Stack>
       </Container>
+
+      {/* Add Account Modal */}
+      <AddAccountModal
+        opened={addModalOpened}
+        onClose={closeAddModal}
+        onConnect={handleConnectAccount}
+        isLoading={isConnecting}
+      />
     </Box>
   );
 };

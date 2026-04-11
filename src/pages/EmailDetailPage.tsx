@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -13,6 +13,7 @@ import {
 } from '@mantine/core';
 import { useEmails } from '@/hooks/useEmails';
 import IntentBadge from '@/components/IntentBadge';
+import AccountBadge from '@/components/AccountBadge';
 import ReplyBox from '@/components/ReplyBox';
 import EmailSkeleton from '@/components/EmailSkeleton';
 import ErrorState from '@/components/ErrorState';
@@ -20,16 +21,22 @@ import { formatFullDate } from '@/utils/formatDate';
 
 /**
  * Email detail page — shows full email content, AI summary, and reply composer.
+ * Now displays which account the email belongs to.
  */
 const EmailDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { selectedEmail, isLoading, isGeneratingReply, error, fetchEmailById, handleGenerateReply } =
+  const { selectedEmail, accounts, isLoading, isGeneratingReply, error, fetchEmailById, handleGenerateReply } =
     useEmails();
 
   useEffect(() => {
     if (id) fetchEmailById(id);
   }, [id]);
+
+  const account = useMemo(
+    () => accounts.find((a) => a.id === selectedEmail?.accountId),
+    [accounts, selectedEmail?.accountId]
+  );
 
   if (isLoading) {
     return (
@@ -105,6 +112,7 @@ const EmailDetailPage = () => {
               <Text size="xs" c="dimmed">
                 &lt;{selectedEmail.senderEmail}&gt;
               </Text>
+              <AccountBadge account={account} />
             </Group>
 
             <Text size="xs" c="dimmed">

@@ -1,11 +1,15 @@
 import { create } from 'zustand';
-import type { Email, EmailFilter } from '@/types/email';
+import type { Email, EmailFilter, Account } from '@/types/email';
 
 /**
  * Global email state managed by Zustand.
- * Holds emails, selection, filters, and loading/error states.
+ * Holds accounts, emails, selection, filters, and loading/error states.
  */
 interface EmailState {
+  /** Connected email accounts */
+  accounts: Account[];
+  /** Currently selected account filter — 'all' shows emails from every account */
+  selectedAccountId: 'all' | string;
   emails: Email[];
   selectedEmail: Email | null;
   filters: EmailFilter;
@@ -13,7 +17,13 @@ interface EmailState {
   isGeneratingReply: boolean;
   error: string | null;
 
-  // Actions
+  // Account actions
+  setAccounts: (accounts: Account[]) => void;
+  addAccount: (account: Account) => void;
+  removeAccount: (accountId: string) => void;
+  setSelectedAccountId: (id: 'all' | string) => void;
+
+  // Email actions
   setEmails: (emails: Email[]) => void;
   setSelectedEmail: (email: Email | null) => void;
   setFilter: (filter: Partial<EmailFilter>) => void;
@@ -31,12 +41,26 @@ const initialFilters: EmailFilter = {
 };
 
 export const useEmailStore = create<EmailState>((set) => ({
+  accounts: [],
+  selectedAccountId: 'all',
   emails: [],
   selectedEmail: null,
   filters: initialFilters,
   isLoading: false,
   isGeneratingReply: false,
   error: null,
+
+  setAccounts: (accounts) => set({ accounts }),
+  addAccount: (account) =>
+    set((state) => ({ accounts: [...state.accounts, account] })),
+  removeAccount: (accountId) =>
+    set((state) => ({
+      accounts: state.accounts.filter((a) => a.id !== accountId),
+      // Reset to 'all' if the removed account was selected
+      selectedAccountId:
+        state.selectedAccountId === accountId ? 'all' : state.selectedAccountId,
+    })),
+  setSelectedAccountId: (selectedAccountId) => set({ selectedAccountId }),
 
   setEmails: (emails) => set({ emails }),
   setSelectedEmail: (email) => set({ selectedEmail: email }),
