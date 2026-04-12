@@ -15,7 +15,7 @@ const queryClient = new QueryClient();
 
 /**
  * Mantine theme customization for InboxAI.
- * Dark mode by default with a slate-blue aesthetic.
+ * Light mode by default — toggle available in dashboard header.
  */
 const theme = createTheme({
   primaryColor: 'blue',
@@ -27,7 +27,7 @@ const theme = createTheme({
 });
 
 const App = () => (
-  <MantineProvider theme={theme} defaultColorScheme="dark">
+  <MantineProvider theme={theme} defaultColorScheme="light">
     <Notifications position="top-right" />
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>

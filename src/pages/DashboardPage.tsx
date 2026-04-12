@@ -17,7 +17,8 @@ import {
 import { DatePicker } from '@mantine/dates';
 import { useDisclosure } from '@mantine/hooks';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import LogoutIcon from '@mui/icons-material/Logout';
+import SearchIcon from '@mui/icons-material/Search';
+import TuneIcon from '@mui/icons-material/Tune';
 import { useEmails } from '@/hooks/useEmails';
 import EmailCard from '@/components/EmailCard';
 import EmailSkeleton from '@/components/EmailSkeleton';
@@ -25,16 +26,19 @@ import ErrorState from '@/components/ErrorState';
 import EmptyState from '@/components/EmptyState';
 import AccountSwitcher from '@/components/AccountSwitcher';
 import AddAccountModal from '@/components/AddAccountModal';
+import ProfileDropdown from '@/components/ProfileDropdown';
+import ThemeToggle from '@/components/ThemeToggle';
+import FilterModal from '@/components/FilterModal';
 import type { EmailIntent } from '@/types/email';
 import { notifications } from '@mantine/notifications';
 
 /**
  * Dashboard page — main email list view with multi-account support and filters.
- * TODO: Add real-time email polling/websocket connection for live updates.
  */
 const DashboardPage = () => {
   const navigate = useNavigate();
   const [addModalOpened, { open: openAddModal, close: closeAddModal }] = useDisclosure(false);
+  const [filterModalOpened, { open: openFilterModal, close: closeFilterModal }] = useDisclosure(false);
   const [isConnecting, setIsConnecting] = useState(false);
 
   const {
@@ -51,7 +55,7 @@ const DashboardPage = () => {
     connectNewAccount,
   } = useEmails();
 
-  // Mock notification — simulates real-time email arrival
+  // Mock notification
   useEffect(() => {
     const timeout = setTimeout(() => {
       notifications.show({
@@ -59,18 +63,17 @@ const DashboardPage = () => {
         message: 'Hackathon invite at 2 PM — from Google Dev Team',
         color: 'blue',
         autoClose: 5000,
+        withCloseButton: true,
       });
     }, 3000);
     return () => clearTimeout(timeout);
   }, []);
 
-  // Build a lookup map for accounts
   const accountMap = useMemo(
     () => new Map(accounts.map((a) => [a.id, a])),
     [accounts]
   );
 
-  // Filter emails client-side by intent and search query
   const filteredEmails = emails.filter((email) => {
     if (filters.intent && email.intent !== filters.intent) return false;
     if (
@@ -101,7 +104,8 @@ const DashboardPage = () => {
     <Box
       style={{
         minHeight: '100vh',
-        background: 'linear-gradient(180deg, #0f172a 0%, #1e293b 100%)',
+        background: 'linear-gradient(180deg, hsl(var(--inbox-bg-gradient-from)) 0%, hsl(var(--inbox-bg-gradient-to)) 100%)',
+        transition: 'background 0.3s ease',
       }}
     >
       {/* Header */}
@@ -109,8 +113,8 @@ const DashboardPage = () => {
         py="md"
         px="lg"
         style={{
-          borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
-          background: 'rgba(15, 23, 42, 0.8)',
+          borderBottom: '1px solid hsl(var(--inbox-header-border))',
+          background: 'hsl(var(--inbox-header-bg) / 0.85)',
           backdropFilter: 'blur(12px)',
           position: 'sticky',
           top: 0,
@@ -121,13 +125,13 @@ const DashboardPage = () => {
           <Group justify="space-between">
             <Title
               order={3}
-              style={{ color: '#f8fafc', letterSpacing: '-0.01em' }}
+              style={{ color: 'hsl(var(--inbox-text-primary))', letterSpacing: '-0.01em' }}
             >
               Inbox
               <Text
                 component="span"
                 style={{
-                  background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                  background: 'linear-gradient(135deg, hsl(221 83% 53%), hsl(259 60% 55%))',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                 }}
@@ -137,38 +141,19 @@ const DashboardPage = () => {
             </Title>
 
             <Group gap="sm">
-              {/* Account Switcher */}
               <AccountSwitcher
                 accounts={accounts}
                 selectedAccountId={selectedAccountId}
                 onSelect={setSelectedAccountId}
               />
-
-              {/* Add Account Button */}
-              <Button
-                variant="light"
-                color="blue"
-                size="sm"
-                radius="md"
-                onClick={openAddModal}
-              >
-                + Add Account
-              </Button>
-
-              <Tooltip label="Logout" position="bottom" withArrow>
-                <ActionIcon
-                  variant="light"
-                  color="red"
-                  size="lg"
-                  radius="md"
-                  onClick={() => {
-                    // TODO: Replace with proper logout via auth provider
-                    navigate('/');
-                  }}
-                >
-                  <LogoutIcon style={{ fontSize: 18 }} />
-                </ActionIcon>
-              </Tooltip>
+              <ThemeToggle />
+              <ProfileDropdown
+                accounts={accounts}
+                selectedAccountId={selectedAccountId}
+                onSelectAccount={setSelectedAccountId}
+                onAddAccount={openAddModal}
+                onLogout={() => navigate('/')}
+              />
             </Group>
           </Group>
         </Container>
@@ -178,6 +163,7 @@ const DashboardPage = () => {
       <Container size="lg" py="md">
         <Stack gap="md">
           <Group gap="sm" wrap="wrap">
+            {/* Date Picker */}
             <Popover position="bottom-start" shadow="md" radius="md">
               <Popover.Target>
                 <Tooltip label="Filter by date" position="bottom" withArrow>
@@ -187,14 +173,14 @@ const DashboardPage = () => {
                     size="lg"
                     radius="md"
                   >
-                    <CalendarMonthIcon style={{ fontSize: 30 }} />
+                    <CalendarMonthIcon style={{ fontSize: 24 }} />
                   </ActionIcon>
                 </Tooltip>
               </Popover.Target>
               <Popover.Dropdown
                 style={{
-                  background: 'rgba(15, 23, 42, 0.95)',
-                  border: '1px solid rgba(148, 163, 184, 0.15)',
+                  background: 'hsl(var(--inbox-card-bg))',
+                  border: '1px solid hsl(var(--inbox-card-border))',
                   backdropFilter: 'blur(12px)',
                   padding: 0,
                 }}
@@ -202,11 +188,7 @@ const DashboardPage = () => {
                 <DatePicker
                   value={filters.date}
                   onChange={(date) => setFilter({ date })}
-                  styles={{
-                    calendarHeader: { color: '#e2e8f0' },
-                    monthCell: { color: '#94a3b8' },
-                    day: { color: '#e2e8f0' },
-                  }}
+                  defaultDate={new Date()}
                 />
                 {filters.date && (
                   <Box px="sm" pb="sm">
@@ -224,20 +206,35 @@ const DashboardPage = () => {
               </Popover.Dropdown>
             </Popover>
 
+            {/* Search Bar with icons */}
             <TextInput
               placeholder="Search emails..."
               value={filters.searchQuery}
               onChange={(e) => setFilter({ searchQuery: e.currentTarget.value })}
               size="sm"
               radius="md"
+              leftSection={<SearchIcon style={{ fontSize: 18, color: 'hsl(var(--inbox-text-muted))' }} />}
+              rightSection={
+                <Tooltip label="Advanced search" position="bottom" withArrow>
+                  <ActionIcon
+                    variant="subtle"
+                    size="sm"
+                    radius="sm"
+                    onClick={openFilterModal}
+                    style={{ color: 'hsl(var(--inbox-text-muted))' }}
+                  >
+                    <TuneIcon style={{ fontSize: 18 }} />
+                  </ActionIcon>
+                </Tooltip>
+              }
               styles={{
                 input: {
-                  background: 'rgba(30, 41, 59, 0.6)',
-                  border: '1px solid rgba(148, 163, 184, 0.15)',
-                  color: '#e2e8f0',
+                  background: 'hsl(var(--inbox-input-bg))',
+                  border: '1px solid hsl(var(--inbox-input-border))',
+                  color: 'hsl(var(--inbox-text-primary))',
                 },
               }}
-              style={{ flex: 1, maxWidth: 300 }}
+              style={{ flex: 1, maxWidth: 400 }}
             />
 
             <SegmentedControl
@@ -255,8 +252,8 @@ const DashboardPage = () => {
               radius="md"
               styles={{
                 root: {
-                  background: 'rgba(30, 41, 59, 0.6)',
-                  border: '1px solid rgba(148, 163, 184, 0.1)',
+                  background: 'hsl(var(--inbox-input-bg))',
+                  border: '1px solid hsl(var(--inbox-input-border))',
                 },
               }}
             />
@@ -264,7 +261,7 @@ const DashboardPage = () => {
 
           {/* Connected accounts count */}
           {accounts.length > 0 && (
-            <Text size="xs" c="dimmed">
+            <Text size="xs" style={{ color: 'hsl(var(--inbox-text-muted))' }}>
               {accounts.length} account{accounts.length !== 1 ? 's' : ''} connected
               {selectedAccountId !== 'all' && (
                 <> · Viewing: {accountMap.get(selectedAccountId)?.email}</>
@@ -272,21 +269,21 @@ const DashboardPage = () => {
             </Text>
           )}
 
-          {/* Edge case: No accounts connected */}
+          {/* No accounts */}
           {accounts.length === 0 && !isLoading && (
             <Box
               p="xl"
               style={{
                 textAlign: 'center',
-                background: 'rgba(30, 41, 59, 0.4)',
+                background: 'hsl(var(--inbox-surface))',
                 borderRadius: 12,
-                border: '1px dashed rgba(148, 163, 184, 0.2)',
+                border: '1px dashed hsl(var(--inbox-card-border))',
               }}
             >
-              <Text size="lg" fw={500} style={{ color: '#94a3b8' }} mb="xs">
+              <Text size="lg" fw={500} style={{ color: 'hsl(var(--inbox-text-secondary))' }} mb="xs">
                 No accounts connected
               </Text>
-              <Text size="sm" c="dimmed" mb="md">
+              <Text size="sm" style={{ color: 'hsl(var(--inbox-text-muted))' }} mb="md">
                 Connect your email account to get started with InboxAI.
               </Text>
               <Button variant="light" color="blue" onClick={openAddModal}>
@@ -315,12 +312,21 @@ const DashboardPage = () => {
         </Stack>
       </Container>
 
-      {/* Add Account Modal */}
+      {/* Modals */}
       <AddAccountModal
         opened={addModalOpened}
         onClose={closeAddModal}
         onConnect={handleConnectAccount}
         isLoading={isConnecting}
+      />
+      <FilterModal
+        opened={filterModalOpened}
+        onClose={closeFilterModal}
+        onSearch={(filters) => {
+          // TODO: Connect advanced filters to backend search API
+          if (filters.from) setFilter({ searchQuery: filters.from });
+          console.log('[FilterModal] Advanced search:', filters);
+        }}
       />
     </Box>
   );
