@@ -23,17 +23,12 @@ const ReplyBox = ({ emailId, emailSubject, isGenerating, onGenerate }: ReplyBoxP
       setError('Please type some context for the AI to generate a reply.');
       return;
     }
-
-    // TODO: Call backend API to generate AI reply
     const result = await onGenerate({
       emailId,
       context: replyText.trim() || emailSubject,
       tone: 'professional',
     });
-
-    if (result) {
-      setReplyText(result.reply);
-    }
+    if (result) setReplyText(result.reply);
   };
 
   const handleSend = () => {
@@ -42,7 +37,6 @@ const ReplyBox = ({ emailId, emailSubject, isGenerating, onGenerate }: ReplyBoxP
       return;
     }
     // TODO: Call backend API to send email reply
-    // Example: await sendReply({ emailId, body: replyText });
     setReplyText('');
   };
 
@@ -51,12 +45,12 @@ const ReplyBox = ({ emailId, emailSubject, isGenerating, onGenerate }: ReplyBoxP
       p="md"
       radius="md"
       style={{
-        background: 'rgba(30, 41, 59, 0.6)',
-        border: '1px solid rgba(148, 163, 184, 0.1)',
+        background: 'hsl(var(--inbox-card-bg))',
+        border: '1px solid hsl(var(--inbox-card-border))',
       }}
     >
       <Stack gap="sm">
-        <Text size="sm" fw={500} style={{ color: '#f8fafc' }}>
+        <Text size="sm" fw={500} style={{ color: 'hsl(var(--inbox-text-primary))' }}>
           Reply
         </Text>
 
@@ -66,55 +60,31 @@ const ReplyBox = ({ emailId, emailSubject, isGenerating, onGenerate }: ReplyBoxP
           maxRows={8}
           autosize
           value={replyText}
-          onChange={(e) => {
-            setReplyText(e.currentTarget.value);
-            setError('');
-          }}
+          onChange={(e) => { setReplyText(e.currentTarget.value); setError(''); }}
           styles={{
             input: {
-              background: 'rgba(15, 23, 42, 0.6)',
-              border: '1px solid rgba(148, 163, 184, 0.15)',
-              color: '#e2e8f0',
+              background: 'hsl(var(--inbox-input-bg))',
+              border: '1px solid hsl(var(--inbox-input-border))',
+              color: 'hsl(var(--inbox-text-primary))',
             },
           }}
         />
 
-        {error && (
-          <Text size="xs" c="red">
-            {error}
-          </Text>
-        )}
+        {error && <Text size="xs" c="red">{error}</Text>}
 
         <Group justify="space-between">
-          <Button
-            variant="light"
-            color="violet"
-            size="sm"
-            radius="md"
-            loading={isGenerating}
-            onClick={handleGenerate}
-          >
+          <Button variant="light" color="violet" size="sm" radius="md" loading={isGenerating} onClick={handleGenerate}>
             ✨ Generate Professional Reply
           </Button>
-
-          <Button
-            variant="filled"
-            color="blue"
-            size="sm"
-            radius="md"
-            onClick={handleSend}
-            disabled={!replyText.trim()}
-          >
+          <Button variant="filled" color="blue" size="sm" radius="md" onClick={handleSend} disabled={!replyText.trim()}>
             Send Reply
           </Button>
         </Group>
 
         {isGenerating && (
-          <Box>
-            <Text size="xs" c="dimmed">
-              AI is crafting your reply...
-            </Text>
-          </Box>
+          <Text size="xs" style={{ color: 'hsl(var(--inbox-text-muted))' }}>
+            AI is crafting your reply...
+          </Text>
         )}
       </Stack>
     </Paper>
