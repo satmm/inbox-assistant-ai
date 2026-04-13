@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { MantineProvider, createTheme } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
 import "@mantine/core/styles.css";
@@ -13,10 +13,6 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-/**
- * Mantine theme customization for InboxAI.
- * Light mode by default — toggle available in dashboard header.
- */
 const theme = createTheme({
   primaryColor: 'blue',
   fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
@@ -27,7 +23,7 @@ const theme = createTheme({
 });
 
 const App = () => (
-  <MantineProvider theme={theme} defaultColorScheme="light">
+  <MantineProvider theme={theme} defaultColorScheme="light" forceColorScheme="light">
     <Notifications position="top-right" />
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>

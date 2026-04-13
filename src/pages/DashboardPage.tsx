@@ -27,7 +27,6 @@ import EmptyState from '@/components/EmptyState';
 import AccountSwitcher from '@/components/AccountSwitcher';
 import AddAccountModal from '@/components/AddAccountModal';
 import ProfileDropdown from '@/components/ProfileDropdown';
-import ThemeToggle from '@/components/ThemeToggle';
 import FilterModal from '@/components/FilterModal';
 import type { EmailIntent } from '@/types/email';
 import { notifications } from '@mantine/notifications';
@@ -104,28 +103,26 @@ const DashboardPage = () => {
     <Box
       style={{
         minHeight: '100vh',
-        background: 'linear-gradient(180deg, hsl(var(--inbox-bg-gradient-from)) 0%, hsl(var(--inbox-bg-gradient-to)) 100%)',
-        transition: 'background 0.3s ease',
+        background: 'linear-gradient(180deg, hsl(210 20% 98%) 0%, hsl(214 32% 94%) 100%)',
       }}
     >
-      {/* Header */}
+      {/* Header — no backdropFilter to avoid stacking context issues */}
       <Box
         py="md"
         px="lg"
         style={{
-          borderBottom: '1px solid hsl(var(--inbox-header-border))',
-          background: 'hsl(var(--inbox-header-bg) / 0.85)',
-          backdropFilter: 'blur(12px)',
+          borderBottom: '1px solid hsl(214 32% 91%)',
+          background: 'hsl(0 0% 100%)',
           position: 'sticky',
           top: 0,
-          zIndex: 100,
+          zIndex: 50,
         }}
       >
         <Container size="lg">
           <Group justify="space-between">
             <Title
               order={3}
-              style={{ color: 'hsl(var(--inbox-text-primary))', letterSpacing: '-0.01em' }}
+              style={{ color: 'hsl(222 47% 11%)', letterSpacing: '-0.01em' }}
             >
               Inbox
               <Text
@@ -146,7 +143,6 @@ const DashboardPage = () => {
                 selectedAccountId={selectedAccountId}
                 onSelect={setSelectedAccountId}
               />
-              <ThemeToggle />
               <ProfileDropdown
                 accounts={accounts}
                 selectedAccountId={selectedAccountId}
@@ -159,29 +155,27 @@ const DashboardPage = () => {
         </Container>
       </Box>
 
-      {/* Filters */}
-      <Container size="lg" py="md">
+      {/* Filters — higher z-index so popovers render above header */}
+      <Container size="lg" py="md" style={{ position: 'relative', zIndex: 60 }}>
         <Stack gap="md">
           <Group gap="sm" wrap="wrap">
             {/* Date Picker */}
-            <Popover position="bottom-start" shadow="md" radius="md">
+            <Popover position="bottom-start" shadow="md" radius="md" zIndex={300}>
               <Popover.Target>
-                <Tooltip label="Filter by date" position="bottom" withArrow>
-                  <ActionIcon
-                    variant={filters.date ? 'filled' : 'subtle'}
-                    color={filters.date ? 'blue' : 'gray'}
-                    size="lg"
-                    radius="md"
-                  >
-                    <CalendarMonthIcon style={{ fontSize: 24 }} />
-                  </ActionIcon>
-                </Tooltip>
+                <ActionIcon
+                  variant={filters.date ? 'filled' : 'subtle'}
+                  color={filters.date ? 'blue' : 'gray'}
+                  size="lg"
+                  radius="md"
+                  aria-label="Filter by date"
+                >
+                  <CalendarMonthIcon style={{ fontSize: 24 }} />
+                </ActionIcon>
               </Popover.Target>
               <Popover.Dropdown
                 style={{
-                  background: 'hsl(var(--inbox-card-bg))',
-                  border: '1px solid hsl(var(--inbox-card-border))',
-                  backdropFilter: 'blur(12px)',
+                  background: 'hsl(0 0% 100%)',
+                  border: '1px solid hsl(214 32% 91%)',
                   padding: 0,
                 }}
               >
@@ -206,32 +200,35 @@ const DashboardPage = () => {
               </Popover.Dropdown>
             </Popover>
 
-            {/* Search Bar with icons */}
+            {/* Search Bar */}
             <TextInput
               placeholder="Search emails..."
               value={filters.searchQuery}
               onChange={(e) => setFilter({ searchQuery: e.currentTarget.value })}
               size="sm"
               radius="md"
-              leftSection={<SearchIcon style={{ fontSize: 18, color: 'hsl(var(--inbox-text-muted))' }} />}
+              leftSection={<SearchIcon style={{ fontSize: 18, color: 'hsl(215 20% 65%)' }} />}
               rightSection={
-                <Tooltip label="Advanced search" position="bottom" withArrow>
-                  <ActionIcon
-                    variant="subtle"
-                    size="sm"
-                    radius="sm"
-                    onClick={openFilterModal}
-                    style={{ color: 'hsl(var(--inbox-text-muted))' }}
-                  >
-                    <TuneIcon style={{ fontSize: 18 }} />
-                  </ActionIcon>
-                </Tooltip>
+                <ActionIcon
+                  variant="subtle"
+                  size="sm"
+                  radius="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openFilterModal();
+                  }}
+                  style={{ color: 'hsl(215 20% 65%)' }}
+                  aria-label="Advanced search"
+                >
+                  <TuneIcon style={{ fontSize: 18 }} />
+                </ActionIcon>
               }
+              rightSectionPointerEvents="all"
               styles={{
                 input: {
-                  background: 'hsl(var(--inbox-input-bg))',
-                  border: '1px solid hsl(var(--inbox-input-border))',
-                  color: 'hsl(var(--inbox-text-primary))',
+                  background: 'hsl(210 40% 96%)',
+                  border: '1px solid hsl(214 32% 91%)',
+                  color: 'hsl(222 47% 11%)',
                 },
               }}
               style={{ flex: 1, maxWidth: 400 }}
@@ -252,8 +249,8 @@ const DashboardPage = () => {
               radius="md"
               styles={{
                 root: {
-                  background: 'hsl(var(--inbox-input-bg))',
-                  border: '1px solid hsl(var(--inbox-input-border))',
+                  background: 'hsl(210 40% 96%)',
+                  border: '1px solid hsl(214 32% 91%)',
                 },
               }}
             />
@@ -261,7 +258,7 @@ const DashboardPage = () => {
 
           {/* Connected accounts count */}
           {accounts.length > 0 && (
-            <Text size="xs" style={{ color: 'hsl(var(--inbox-text-muted))' }}>
+            <Text size="xs" c="dimmed">
               {accounts.length} account{accounts.length !== 1 ? 's' : ''} connected
               {selectedAccountId !== 'all' && (
                 <> · Viewing: {accountMap.get(selectedAccountId)?.email}</>
@@ -275,15 +272,15 @@ const DashboardPage = () => {
               p="xl"
               style={{
                 textAlign: 'center',
-                background: 'hsl(var(--inbox-surface))',
+                background: 'hsl(210 40% 96%)',
                 borderRadius: 12,
-                border: '1px dashed hsl(var(--inbox-card-border))',
+                border: '1px dashed hsl(214 32% 91%)',
               }}
             >
-              <Text size="lg" fw={500} style={{ color: 'hsl(var(--inbox-text-secondary))' }} mb="xs">
+              <Text size="lg" fw={500} c="dimmed" mb="xs">
                 No accounts connected
               </Text>
-              <Text size="sm" style={{ color: 'hsl(var(--inbox-text-muted))' }} mb="md">
+              <Text size="sm" c="dimmed" mb="md">
                 Connect your email account to get started with InboxAI.
               </Text>
               <Button variant="light" color="blue" onClick={openAddModal}>
@@ -323,7 +320,6 @@ const DashboardPage = () => {
         opened={filterModalOpened}
         onClose={closeFilterModal}
         onSearch={(filters) => {
-          // TODO: Connect advanced filters to backend search API
           if (filters.from) setFilter({ searchQuery: filters.from });
           console.log('[FilterModal] Advanced search:', filters);
         }}
