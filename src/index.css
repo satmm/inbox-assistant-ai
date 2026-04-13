@@ -58,4 +58,8 @@
 /* Mantine notification positioning fix */
 .mantine-Notifications-root {
   top: 70px !important;
+  pointer-events: none;
+}
+.mantine-Notifications-root > * {
+  pointer-events: auto;
 }
