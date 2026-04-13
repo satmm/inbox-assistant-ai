@@ -14,28 +14,10 @@ const providers: { id: Account['provider']; label: string; icon: string }[] = [
   { id: 'yahoo', label: 'Yahoo Mail', icon: '✉️' },
 ];
 
-/**
- * Modal dialog for connecting a new email account.
- * TODO: Each button should trigger the backend OAuth flow for the selected provider.
- */
 const AddAccountModal = ({ opened, onClose, onConnect, isLoading }: AddAccountModalProps) => (
-  <Modal
-    opened={opened}
-    onClose={onClose}
-    title="Connect Email Account"
-    centered
-    styles={{
-      header: {
-        background: 'hsl(var(--inbox-card-bg))',
-        borderBottom: '1px solid hsl(var(--inbox-card-border))',
-      },
-      title: { color: 'hsl(var(--inbox-text-primary))', fontWeight: 600 },
-      body: { background: 'hsl(var(--inbox-card-bg))' },
-      close: { color: 'hsl(var(--inbox-text-secondary))' },
-    }}
-  >
+  <Modal opened={opened} onClose={onClose} title="Connect Email Account" centered>
     <Stack gap="sm">
-      <Text size="sm" style={{ color: 'hsl(var(--inbox-text-secondary))' }}>
+      <Text size="sm" c="dimmed">
         Select a provider to connect your email account.
       </Text>
       {providers.map((p) => (
@@ -46,12 +28,6 @@ const AddAccountModal = ({ opened, onClose, onConnect, isLoading }: AddAccountMo
           size="md"
           loading={isLoading}
           onClick={() => onConnect(p.id)}
-          styles={{
-            root: {
-              borderColor: 'hsl(var(--inbox-card-border))',
-              color: 'hsl(var(--inbox-text-primary))',
-            },
-          }}
         >
           <Group gap="sm">
             <Text>{p.icon}</Text>
@@ -59,7 +35,7 @@ const AddAccountModal = ({ opened, onClose, onConnect, isLoading }: AddAccountMo
           </Group>
         </Button>
       ))}
-      <Text size="xs" style={{ color: 'hsl(var(--inbox-text-muted))' }} ta="center" mt="xs">
+      <Text size="xs" c="dimmed" ta="center" mt="xs">
         OAuth tokens are securely handled by the backend. No credentials are stored in the browser.
       </Text>
     </Stack>

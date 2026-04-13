@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Textarea, Button, Stack, Paper, Text, Group, Box } from '@mantine/core';
+import { Textarea, Button, Stack, Paper, Text, Group } from '@mantine/core';
 import type { GenerateReplyPayload, GenerateReplyResponse } from '@/types/email';
 
 interface ReplyBoxProps {
@@ -9,10 +9,6 @@ interface ReplyBoxProps {
   onGenerate: (payload: GenerateReplyPayload) => Promise<GenerateReplyResponse | null>;
 }
 
-/**
- * Reply composer with AI-powered reply generation.
- * TODO: Connect "Send" action to backend email sending API.
- */
 const ReplyBox = ({ emailId, emailSubject, isGenerating, onGenerate }: ReplyBoxProps) => {
   const [replyText, setReplyText] = useState('');
   const [error, setError] = useState('');
@@ -23,55 +19,26 @@ const ReplyBox = ({ emailId, emailSubject, isGenerating, onGenerate }: ReplyBoxP
       setError('Please type some context for the AI to generate a reply.');
       return;
     }
-    const result = await onGenerate({
-      emailId,
-      context: replyText.trim() || emailSubject,
-      tone: 'professional',
-    });
+    const result = await onGenerate({ emailId, context: replyText.trim() || emailSubject, tone: 'professional' });
     if (result) setReplyText(result.reply);
   };
 
   const handleSend = () => {
-    if (!replyText.trim()) {
-      setError('Reply cannot be empty.');
-      return;
-    }
-    // TODO: Call backend API to send email reply
+    if (!replyText.trim()) { setError('Reply cannot be empty.'); return; }
     setReplyText('');
   };
 
   return (
-    <Paper
-      p="md"
-      radius="md"
-      style={{
-        background: 'hsl(var(--inbox-card-bg))',
-        border: '1px solid hsl(var(--inbox-card-border))',
-      }}
-    >
+    <Paper p="md" radius="md" withBorder>
       <Stack gap="sm">
-        <Text size="sm" fw={500} style={{ color: 'hsl(var(--inbox-text-primary))' }}>
-          Reply
-        </Text>
-
+        <Text size="sm" fw={500}>Reply</Text>
         <Textarea
           placeholder="Type your reply or let AI generate one..."
-          minRows={4}
-          maxRows={8}
-          autosize
+          minRows={4} maxRows={8} autosize
           value={replyText}
           onChange={(e) => { setReplyText(e.currentTarget.value); setError(''); }}
-          styles={{
-            input: {
-              background: 'hsl(var(--inbox-input-bg))',
-              border: '1px solid hsl(var(--inbox-input-border))',
-              color: 'hsl(var(--inbox-text-primary))',
-            },
-          }}
         />
-
         {error && <Text size="xs" c="red">{error}</Text>}
-
         <Group justify="space-between">
           <Button variant="light" color="violet" size="sm" radius="md" loading={isGenerating} onClick={handleGenerate}>
             ✨ Generate Professional Reply
@@ -80,12 +47,7 @@ const ReplyBox = ({ emailId, emailSubject, isGenerating, onGenerate }: ReplyBoxP
             Send Reply
           </Button>
         </Group>
-
-        {isGenerating && (
-          <Text size="xs" style={{ color: 'hsl(var(--inbox-text-muted))' }}>
-            AI is crafting your reply...
-          </Text>
-        )}
+        {isGenerating && <Text size="xs" c="dimmed">AI is crafting your reply...</Text>}
       </Stack>
     </Paper>
   );

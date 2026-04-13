@@ -1,78 +1,33 @@
 import { useNavigate } from 'react-router-dom';
-import {
-  Container,
-  Title,
-  Text,
-  Button,
-  Stack,
-  Paper,
-  Box,
-} from '@mantine/core';
+import { Container, Title, Text, Button, Stack, Paper, Box } from '@mantine/core';
 
-/**
- * Login page with Google OAuth placeholder.
- * TODO: Replace with Google OAuth integration
- */
 const LoginPage = () => {
   const navigate = useNavigate();
-
-  const handleGoogleLogin = () => {
-    // TODO: Replace with Google OAuth integration
-    navigate('/dashboard');
-  };
 
   return (
     <Box
       style={{
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, hsl(var(--inbox-bg-gradient-from)) 0%, hsl(var(--inbox-bg-gradient-to)) 50%, hsl(var(--inbox-bg-gradient-from)) 100%)',
+        background: 'linear-gradient(135deg, hsl(210 20% 98%) 0%, hsl(214 32% 94%) 50%, hsl(210 20% 98%) 100%)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        transition: 'background 0.3s ease',
       }}
     >
       <Container size="xs">
-        <Paper
-          radius="lg"
-          p="xl"
-          style={{
-            background: 'hsl(var(--inbox-card-bg))',
-            backdropFilter: 'blur(20px)',
-            border: '1px solid hsl(var(--inbox-card-border))',
-            boxShadow: 'var(--inbox-shadow-md)',
-          }}
-        >
+        <Paper radius="lg" p="xl" withBorder shadow="md">
           <Stack align="center" gap="lg">
             <Box>
-              <Title
-                order={1}
-                style={{ color: 'hsl(var(--inbox-text-primary))', fontSize: '2rem', letterSpacing: '-0.02em' }}
-                ta="center"
-              >
+              <Title order={1} style={{ fontSize: '2rem', letterSpacing: '-0.02em' }} ta="center">
                 Inbox
-                <Text
-                  component="span"
-                  style={{
-                    background: 'linear-gradient(135deg, hsl(221 83% 53%), hsl(259 60% 55%))',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                  }}
-                >
+                <Text component="span" style={{ background: 'linear-gradient(135deg, hsl(221 83% 53%), hsl(259 60% 55%))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                   AI
                 </Text>
               </Title>
-              <Text size="sm" style={{ color: 'hsl(var(--inbox-text-secondary))' }} ta="center" mt="xs">
-                Your AI-powered email assistant
-              </Text>
+              <Text size="sm" c="dimmed" ta="center" mt="xs">Your AI-powered email assistant</Text>
             </Box>
 
-            <Button
-              size="lg"
-              fullWidth
-              radius="md"
-              variant="default"
-              onClick={handleGoogleLogin}
+            <Button size="lg" fullWidth radius="md" variant="default" onClick={() => navigate('/dashboard')}
               leftSection={
                 <svg width="18" height="18" viewBox="0 0 24 24">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
@@ -85,7 +40,7 @@ const LoginPage = () => {
               Continue with Google
             </Button>
 
-            <Text size="xs" style={{ color: 'hsl(var(--inbox-text-muted))' }} ta="center">
+            <Text size="xs" c="dimmed" ta="center">
               By signing in, you agree to our Terms of Service and Privacy Policy.
             </Text>
           </Stack>

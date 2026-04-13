@@ -7,9 +7,6 @@ interface AccountSwitcherProps {
   onSelect: (id: 'all' | string) => void;
 }
 
-/**
- * Dropdown to switch between connected email accounts or view all.
- */
 const AccountSwitcher = ({ accounts, selectedAccountId, onSelect }: AccountSwitcherProps) => {
   const data = [
     { value: 'all', label: 'All Accounts' },
@@ -26,9 +23,9 @@ const AccountSwitcher = ({ accounts, selectedAccountId, onSelect }: AccountSwitc
       placeholder="Select account"
       styles={{
         input: {
-          background: 'hsl(var(--inbox-input-bg))',
-          border: '1px solid hsl(var(--inbox-input-border))',
-          color: 'hsl(var(--inbox-text-primary))',
+          background: 'hsl(210 40% 96%)',
+          border: '1px solid hsl(214 32% 91%)',
+          color: 'hsl(222 47% 11%)',
           minWidth: 200,
         },
       }}
