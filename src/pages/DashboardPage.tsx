@@ -21,10 +21,7 @@ import { useDisclosure } from '@mantine/hooks';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import SearchIcon from '@mui/icons-material/Search';
 import TuneIcon from '@mui/icons-material/Tune';
-import DoneAllIcon from '@mui/icons-material/DoneAll';
-import MarkunreadIcon from '@mui/icons-material/Markunread';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
+import { CheckCheck, MailOpen, Trash2, ChevronDown } from 'lucide-react';
 import { format, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { useEmails } from '@/hooks/useEmails';
 import EmailCard from '@/components/EmailCard';
@@ -421,7 +418,7 @@ const DashboardPage = () => {
                 <Menu shadow="md" radius="md" zIndex={300}>
                   <Menu.Target>
                     <ActionIcon variant="subtle" size="xs" color="gray">
-                      <ArrowDropDownIcon style={{ fontSize: 18 }} />
+                      <ChevronDown size={16} />
                     </ActionIcon>
                   </Menu.Target>
                   <Menu.Dropdown>
@@ -440,7 +437,7 @@ const DashboardPage = () => {
                     variant="subtle"
                     size="xs"
                     color="blue"
-                    leftSection={<DoneAllIcon style={{ fontSize: 16 }} />}
+                    leftSection={<CheckCheck size={16} />}
                     onClick={() => bulkMarkAsRead(Array.from(selectedEmailIds))}
                   >
                     Mark Read
@@ -449,7 +446,7 @@ const DashboardPage = () => {
                     variant="subtle"
                     size="xs"
                     color="gray"
-                    leftSection={<MarkunreadIcon style={{ fontSize: 16 }} />}
+                    leftSection={<MailOpen size={16} />}
                     onClick={() => bulkMarkAsUnread(Array.from(selectedEmailIds))}
                   >
                     Mark Unread
@@ -458,7 +455,7 @@ const DashboardPage = () => {
                     variant="subtle"
                     size="xs"
                     color="red"
-                    leftSection={<DeleteOutlineIcon style={{ fontSize: 16 }} />}
+                    leftSection={<Trash2 size={16} />}
                     onClick={() => {
                       bulkDelete(Array.from(selectedEmailIds));
                       notifications.show({
