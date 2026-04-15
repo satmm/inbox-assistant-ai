@@ -2,10 +2,9 @@ import { useCallback, useEffect } from 'react';
 import { useEmailStore } from '@/store/emailStore';
 import {
   getEmails,
-  getEmailsByDate,
   getEmailsByAccount,
-  getEmailById,
   getAccounts,
+  getEmailById,
   connectAccount as apiConnectAccount,
   disconnectAccount as apiDisconnectAccount,
   generateReply,
@@ -19,7 +18,6 @@ import type { GenerateReplyPayload, Account } from '@/types/email';
 export function useEmails() {
   const store = useEmailStore();
 
-  /** Fetch all connected accounts */
   const fetchAccounts = useCallback(async () => {
     try {
       const accounts = await getAccounts();
@@ -29,34 +27,25 @@ export function useEmails() {
     }
   }, []);
 
-  /** Fetch emails — respects account and date filters */
+  /** Fetch emails — always fetches all, filtering done client-side */
   const fetchEmails = useCallback(async () => {
     store.setLoading(true);
     store.setError(null);
     try {
       let data;
-      if (store.filters.date) {
-        data = await getEmailsByDate(store.filters.date);
-      } else if (store.selectedAccountId !== 'all') {
+      if (store.selectedAccountId !== 'all') {
         data = await getEmailsByAccount(store.selectedAccountId);
       } else {
         data = await getEmails();
       }
-
-      // If we fetched by date but also have an account filter, apply it client-side
-      if (store.filters.date && store.selectedAccountId !== 'all') {
-        data = data.filter((e) => e.accountId === store.selectedAccountId);
-      }
-
       store.setEmails(data);
     } catch {
       store.setError('Failed to load emails. Please try again.');
     } finally {
       store.setLoading(false);
     }
-  }, [store.filters.date, store.selectedAccountId]);
+  }, [store.selectedAccountId]);
 
-  /** Fetch a single email by ID */
   const fetchEmailById = useCallback(async (id: string) => {
     store.setLoading(true);
     store.setError(null);
@@ -75,10 +64,6 @@ export function useEmails() {
     }
   }, []);
 
-  /**
-   * Connect a new email account via OAuth.
-   * TODO: Integrate with backend OAuth flow
-   */
   const connectNewAccount = useCallback(async (provider: Account['provider']) => {
     try {
       const account = await apiConnectAccount(provider);
@@ -90,10 +75,6 @@ export function useEmails() {
     }
   }, []);
 
-  /**
-   * Disconnect an email account.
-   * TODO: Backend should revoke OAuth tokens
-   */
   const removeAccount = useCallback(async (accountId: string) => {
     try {
       await apiDisconnectAccount(accountId);
@@ -103,11 +84,9 @@ export function useEmails() {
     }
   }, []);
 
-  /** Generate an AI reply */
   const handleGenerateReply = useCallback(async (payload: GenerateReplyPayload) => {
     store.setGeneratingReply(true);
     try {
-      // TODO: This calls the AI backend to generate a reply
       const result = await generateReply(payload);
       return result;
     } catch {
@@ -118,7 +97,6 @@ export function useEmails() {
     }
   }, []);
 
-  // Fetch accounts + emails on mount
   useEffect(() => {
     fetchAccounts();
   }, [fetchAccounts]);

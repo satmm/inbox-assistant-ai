@@ -1,14 +1,8 @@
 import { create } from 'zustand';
 import type { Email, EmailFilter, Account } from '@/types/email';
 
-/**
- * Global email state managed by Zustand.
- * Holds accounts, emails, selection, filters, and loading/error states.
- */
 interface EmailState {
-  /** Connected email accounts */
   accounts: Account[];
-  /** Currently selected account filter — 'all' shows emails from every account */
   selectedAccountId: 'all' | string;
   emails: Email[];
   selectedEmail: Email | null;
@@ -16,6 +10,9 @@ interface EmailState {
   isLoading: boolean;
   isGeneratingReply: boolean;
   error: string | null;
+
+  /** IDs of emails selected via checkboxes */
+  selectedEmailIds: Set<string>;
 
   // Account actions
   setAccounts: (accounts: Account[]) => void;
@@ -32,10 +29,17 @@ interface EmailState {
   setGeneratingReply: (generating: boolean) => void;
   setError: (error: string | null) => void;
   markAsRead: (emailId: string) => void;
+  markAsUnread: (emailId: string) => void;
+  bulkMarkAsRead: (ids: string[]) => void;
+  bulkMarkAsUnread: (ids: string[]) => void;
+  bulkDelete: (ids: string[]) => void;
+  toggleSelectEmail: (id: string) => void;
+  selectAllEmails: (ids: string[]) => void;
+  deselectAllEmails: () => void;
 }
 
 const initialFilters: EmailFilter = {
-  date: null,
+  dateRange: [null, null],
   intent: null,
   searchQuery: '',
 };
@@ -49,6 +53,7 @@ export const useEmailStore = create<EmailState>((set) => ({
   isLoading: false,
   isGeneratingReply: false,
   error: null,
+  selectedEmailIds: new Set(),
 
   setAccounts: (accounts) => set({ accounts }),
   addAccount: (account) =>
@@ -56,7 +61,6 @@ export const useEmailStore = create<EmailState>((set) => ({
   removeAccount: (accountId) =>
     set((state) => ({
       accounts: state.accounts.filter((a) => a.id !== accountId),
-      // Reset to 'all' if the removed account was selected
       selectedAccountId:
         state.selectedAccountId === accountId ? 'all' : state.selectedAccountId,
     })),
@@ -70,10 +74,43 @@ export const useEmailStore = create<EmailState>((set) => ({
   setLoading: (isLoading) => set({ isLoading }),
   setGeneratingReply: (isGeneratingReply) => set({ isGeneratingReply }),
   setError: (error) => set({ error }),
+
   markAsRead: (emailId) =>
     set((state) => ({
       emails: state.emails.map((e) =>
         e.id === emailId ? { ...e, isRead: true } : e
       ),
     })),
+  markAsUnread: (emailId) =>
+    set((state) => ({
+      emails: state.emails.map((e) =>
+        e.id === emailId ? { ...e, isRead: false } : e
+      ),
+    })),
+  bulkMarkAsRead: (ids) =>
+    set((state) => ({
+      emails: state.emails.map((e) =>
+        ids.includes(e.id) ? { ...e, isRead: true } : e
+      ),
+    })),
+  bulkMarkAsUnread: (ids) =>
+    set((state) => ({
+      emails: state.emails.map((e) =>
+        ids.includes(e.id) ? { ...e, isRead: false } : e
+      ),
+    })),
+  bulkDelete: (ids) =>
+    set((state) => ({
+      emails: state.emails.filter((e) => !ids.includes(e.id)),
+      selectedEmailIds: new Set(),
+    })),
+  toggleSelectEmail: (id) =>
+    set((state) => {
+      const next = new Set(state.selectedEmailIds);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return { selectedEmailIds: next };
+    }),
+  selectAllEmails: (ids) => set({ selectedEmailIds: new Set(ids) }),
+  deselectAllEmails: () => set({ selectedEmailIds: new Set() }),
 }));
