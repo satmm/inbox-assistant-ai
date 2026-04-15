@@ -273,6 +273,29 @@ const DashboardPage = () => {
                   value={filters.dateRange}
                   onChange={(range) => setFilter({ dateRange: range })}
                   defaultDate={new Date()}
+                  getDayProps={(date) => {
+                    const today = new Date();
+                    const isToday = 
+                      date.getDate() === today.getDate() &&
+                      date.getMonth() === today.getMonth() &&
+                      date.getFullYear() === today.getFullYear();
+                    
+                    // If no date range selected, highlight today as default
+                    const [start, end] = filters.dateRange;
+                    const hasNoSelection = !start && !end;
+                    
+                    if (isToday && hasNoSelection) {
+                      return {
+                        style: {
+                          backgroundColor: 'hsl(221 83% 53%)',
+                          color: 'white',
+                          borderRadius: '8px',
+                          fontWeight: 600,
+                        },
+                      };
+                    }
+                    return {};
+                  }}
                   styles={{
                     day: {
                       borderRadius: 8,
@@ -287,6 +310,9 @@ const DashboardPage = () => {
                       },
                       '&[data-in-range]': {
                         background: 'hsl(221 83% 53% / 0.1)',
+                      },
+                      '&[data-today]': {
+                        fontWeight: 600,
                       },
                     },
                   }}
