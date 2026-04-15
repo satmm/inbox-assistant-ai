@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -12,13 +12,20 @@ import {
   TextInput,
   Button,
   Popover,
-  Tooltip,
+  Checkbox,
+  Menu,
+  Badge,
 } from '@mantine/core';
 import { DatePicker } from '@mantine/dates';
 import { useDisclosure } from '@mantine/hooks';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import SearchIcon from '@mui/icons-material/Search';
 import TuneIcon from '@mui/icons-material/Tune';
+import DoneAllIcon from '@mui/icons-material/DoneAll';
+import MarkunreadIcon from '@mui/icons-material/Markunread';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
+import { format, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { useEmails } from '@/hooks/useEmails';
 import EmailCard from '@/components/EmailCard';
 import EmailSkeleton from '@/components/EmailSkeleton';
@@ -32,7 +39,8 @@ import type { EmailIntent } from '@/types/email';
 import { notifications } from '@mantine/notifications';
 
 /**
- * Dashboard page — main email list view with multi-account support and filters.
+ * Dashboard page — main email list view with multi-account support, 
+ * date range filtering, bulk actions, and read/unread UX.
  */
 const DashboardPage = () => {
   const navigate = useNavigate();
@@ -47,12 +55,33 @@ const DashboardPage = () => {
     filters,
     isLoading,
     error,
+    selectedEmailIds,
     setFilter,
     setSelectedAccountId,
     resetFilters,
     fetchEmails,
     connectNewAccount,
+    markAsRead,
+    bulkMarkAsRead,
+    bulkMarkAsUnread,
+    bulkDelete,
+    toggleSelectEmail,
+    selectAllEmails,
+    deselectAllEmails,
   } = useEmails();
+
+  /** Keyboard shortcuts: R = mark read, U = mark unread */
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      const ids = Array.from(selectedEmailIds);
+      if (ids.length === 0) return;
+      if (e.key === 'r' || e.key === 'R') bulkMarkAsRead(ids);
+      if (e.key === 'u' || e.key === 'U') bulkMarkAsUnread(ids);
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [selectedEmailIds, bulkMarkAsRead, bulkMarkAsUnread]);
 
   // Mock notification
   useEffect(() => {
@@ -73,16 +102,74 @@ const DashboardPage = () => {
     [accounts]
   );
 
-  const filteredEmails = emails.filter((email) => {
-    if (filters.intent && email.intent !== filters.intent) return false;
-    if (
-      filters.searchQuery &&
-      !email.subject.toLowerCase().includes(filters.searchQuery.toLowerCase()) &&
-      !email.sender.toLowerCase().includes(filters.searchQuery.toLowerCase())
-    )
-      return false;
-    return true;
-  });
+  /** Client-side filtering: intent, search, and date range */
+  const filteredEmails = useMemo(() => {
+    return emails.filter((email) => {
+      // Intent filter
+      if (filters.intent && email.intent !== filters.intent) return false;
+
+      // Search filter
+      if (
+        filters.searchQuery &&
+        !email.subject.toLowerCase().includes(filters.searchQuery.toLowerCase()) &&
+        !email.sender.toLowerCase().includes(filters.searchQuery.toLowerCase())
+      )
+        return false;
+
+      // Date range filter
+      const [start, end] = filters.dateRange;
+      if (start && end) {
+        const emailDate = new Date(email.timestamp);
+        if (!isWithinInterval(emailDate, { start: startOfDay(start), end: endOfDay(end) })) {
+          return false;
+        }
+      } else if (start && !end) {
+        const emailDate = new Date(email.timestamp);
+        if (emailDate < startOfDay(start)) return false;
+      }
+
+      return true;
+    });
+  }, [emails, filters]);
+
+  const unreadCount = useMemo(
+    () => filteredEmails.filter((e) => !e.isRead).length,
+    [filteredEmails]
+  );
+
+  const allSelected = filteredEmails.length > 0 && selectedEmailIds.size === filteredEmails.length;
+  const someSelected = selectedEmailIds.size > 0;
+
+  const handleSelectAll = () => {
+    if (allSelected) {
+      deselectAllEmails();
+    } else {
+      selectAllEmails(filteredEmails.map((e) => e.id));
+    }
+  };
+
+  /** Quick-select dropdown (Gmail-like) */
+  const handleQuickSelect = (type: string) => {
+    switch (type) {
+      case 'all':
+        selectAllEmails(filteredEmails.map((e) => e.id));
+        break;
+      case 'none':
+        deselectAllEmails();
+        break;
+      case 'read':
+        selectAllEmails(filteredEmails.filter((e) => e.isRead).map((e) => e.id));
+        break;
+      case 'unread':
+        selectAllEmails(filteredEmails.filter((e) => !e.isRead).map((e) => e.id));
+        break;
+    }
+  };
+
+  const handleEmailClick = useCallback((emailId: string) => {
+    markAsRead(emailId);
+    navigate(`/email/${emailId}`);
+  }, [markAsRead, navigate]);
 
   const handleConnectAccount = async (provider: 'gmail' | 'outlook' | 'yahoo') => {
     setIsConnecting(true);
@@ -99,6 +186,9 @@ const DashboardPage = () => {
     }
   };
 
+  const [rangeStart, rangeEnd] = filters.dateRange;
+  const hasDateRange = rangeStart !== null;
+
   return (
     <Box
       style={{
@@ -106,7 +196,7 @@ const DashboardPage = () => {
         background: 'linear-gradient(180deg, hsl(210 20% 98%) 0%, hsl(214 32% 94%) 100%)',
       }}
     >
-      {/* Header — no backdropFilter to avoid stacking context issues */}
+      {/* Sticky Header */}
       <Box
         py="md"
         px="lg"
@@ -155,19 +245,19 @@ const DashboardPage = () => {
         </Container>
       </Box>
 
-      {/* Filters — higher z-index so popovers render above header */}
+      {/* Filters */}
       <Container size="lg" py="md" style={{ position: 'relative', zIndex: 60 }}>
         <Stack gap="md">
           <Group gap="sm" wrap="wrap">
-            {/* Date Picker */}
-            <Popover position="bottom-start" shadow="md" radius="md" zIndex={300}>
+            {/* Date Range Picker */}
+            <Popover position="bottom-start" shadow="lg" radius="lg" zIndex={300}>
               <Popover.Target>
                 <ActionIcon
-                  variant={filters.date ? 'filled' : 'subtle'}
-                  color={filters.date ? 'blue' : 'gray'}
+                  variant={hasDateRange ? 'filled' : 'subtle'}
+                  color={hasDateRange ? 'blue' : 'gray'}
                   size="lg"
                   radius="md"
-                  aria-label="Filter by date"
+                  aria-label="Filter by date range"
                 >
                   <CalendarMonthIcon style={{ fontSize: 24 }} />
                 </ActionIcon>
@@ -176,24 +266,44 @@ const DashboardPage = () => {
                 style={{
                   background: 'hsl(0 0% 100%)',
                   border: '1px solid hsl(214 32% 91%)',
-                  padding: 0,
+                  borderRadius: 16,
+                  padding: 4,
+                  boxShadow: '0 8px 30px rgba(0,0,0,0.08)',
                 }}
               >
                 <DatePicker
-                  value={filters.date}
-                  onChange={(date) => setFilter({ date })}
+                  type="range"
+                  value={filters.dateRange}
+                  onChange={(range) => setFilter({ dateRange: range })}
                   defaultDate={new Date()}
+                  styles={{
+                    day: {
+                      borderRadius: 8,
+                      transition: 'all 0.15s ease',
+                      '&:hover': {
+                        transform: 'scale(1.1)',
+                        background: 'hsl(221 83% 53% / 0.1)',
+                      },
+                      '&[data-selected]': {
+                        background: 'hsl(221 83% 53%)',
+                        color: 'white',
+                      },
+                      '&[data-in-range]': {
+                        background: 'hsl(221 83% 53% / 0.1)',
+                      },
+                    },
+                  }}
                 />
-                {filters.date && (
+                {hasDateRange && (
                   <Box px="sm" pb="sm">
                     <Button
                       variant="subtle"
                       color="gray"
                       size="xs"
                       fullWidth
-                      onClick={() => setFilter({ date: null })}
+                      onClick={() => setFilter({ dateRange: [null, null] })}
                     >
-                      Clear date
+                      Clear date range
                     </Button>
                   </Box>
                 )}
@@ -234,6 +344,7 @@ const DashboardPage = () => {
               style={{ flex: 1, maxWidth: 400 }}
             />
 
+            {/* Intent Filter Tabs */}
             <SegmentedControl
               value={filters.intent || 'all'}
               onChange={(val) =>
@@ -256,14 +367,116 @@ const DashboardPage = () => {
             />
           </Group>
 
-          {/* Connected accounts count */}
-          {accounts.length > 0 && (
-            <Text size="xs" c="dimmed">
-              {accounts.length} account{accounts.length !== 1 ? 's' : ''} connected
-              {selectedAccountId !== 'all' && (
-                <> · Viewing: {accountMap.get(selectedAccountId)?.email}</>
-              )}
+          {/* Date range label */}
+          {rangeStart && (
+            <Text size="xs" c="dimmed" fw={500}>
+              📅 Showing emails from {format(rangeStart, 'MMM d')}
+              {rangeEnd ? ` – ${format(rangeEnd, 'MMM d, yyyy')}` : ' onwards'}
             </Text>
+          )}
+
+          {/* Info bar: accounts + unread count */}
+          <Group justify="space-between" align="center">
+            {accounts.length > 0 && (
+              <Text size="xs" c="dimmed">
+                {accounts.length} account{accounts.length !== 1 ? 's' : ''} connected
+                {selectedAccountId !== 'all' && (
+                  <> · Viewing: {accountMap.get(selectedAccountId)?.email}</>
+                )}
+              </Text>
+            )}
+            {unreadCount > 0 && (
+              <Badge variant="light" color="blue" size="sm" radius="xl">
+                {unreadCount} unread
+              </Badge>
+            )}
+          </Group>
+
+          {/* Bulk action bar */}
+          {filteredEmails.length > 0 && (
+            <Group
+              gap="xs"
+              align="center"
+              py={4}
+              style={{
+                borderBottom: someSelected ? '1px solid hsl(221 83% 53% / 0.2)' : undefined,
+                paddingBottom: someSelected ? 8 : 0,
+                transition: 'all 0.2s ease',
+              }}
+            >
+              {/* Select-all checkbox + dropdown */}
+              <Group gap={2}>
+                <Checkbox
+                  checked={allSelected}
+                  indeterminate={someSelected && !allSelected}
+                  onChange={handleSelectAll}
+                  size="sm"
+                  styles={{
+                    input: {
+                      cursor: 'pointer',
+                      borderRadius: 4,
+                    },
+                  }}
+                />
+                <Menu shadow="md" radius="md" zIndex={300}>
+                  <Menu.Target>
+                    <ActionIcon variant="subtle" size="xs" color="gray">
+                      <ArrowDropDownIcon style={{ fontSize: 18 }} />
+                    </ActionIcon>
+                  </Menu.Target>
+                  <Menu.Dropdown>
+                    <Menu.Item onClick={() => handleQuickSelect('all')}>All</Menu.Item>
+                    <Menu.Item onClick={() => handleQuickSelect('none')}>None</Menu.Item>
+                    <Menu.Item onClick={() => handleQuickSelect('read')}>Read</Menu.Item>
+                    <Menu.Item onClick={() => handleQuickSelect('unread')}>Unread</Menu.Item>
+                  </Menu.Dropdown>
+                </Menu>
+              </Group>
+
+              {/* Bulk actions — visible when items selected */}
+              {someSelected && (
+                <Group gap="xs" style={{ animation: 'fadeIn 0.2s ease' }}>
+                  <Button
+                    variant="subtle"
+                    size="xs"
+                    color="blue"
+                    leftSection={<DoneAllIcon style={{ fontSize: 16 }} />}
+                    onClick={() => bulkMarkAsRead(Array.from(selectedEmailIds))}
+                  >
+                    Mark Read
+                  </Button>
+                  <Button
+                    variant="subtle"
+                    size="xs"
+                    color="gray"
+                    leftSection={<MarkunreadIcon style={{ fontSize: 16 }} />}
+                    onClick={() => bulkMarkAsUnread(Array.from(selectedEmailIds))}
+                  >
+                    Mark Unread
+                  </Button>
+                  <Button
+                    variant="subtle"
+                    size="xs"
+                    color="red"
+                    leftSection={<DeleteOutlineIcon style={{ fontSize: 16 }} />}
+                    onClick={() => {
+                      bulkDelete(Array.from(selectedEmailIds));
+                      notifications.show({
+                        title: '🗑️ Deleted',
+                        message: `${selectedEmailIds.size} email(s) removed.`,
+                        color: 'red',
+                        autoClose: 3000,
+                      });
+                    }}
+                  >
+                    Delete
+                  </Button>
+                  <Text size="xs" c="dimmed" ml="xs">
+                    {selectedEmailIds.size} selected
+                  </Text>
+                </Group>
+              )}
+            </Group>
           )}
 
           {/* No accounts */}
@@ -296,12 +509,15 @@ const DashboardPage = () => {
             <EmptyState />
           )}
           {!isLoading && !error && filteredEmails.length > 0 && (
-            <Stack gap="sm">
+            <Stack gap={6}>
               {filteredEmails.map((email) => (
                 <EmailCard
                   key={email.id}
                   email={email}
                   account={accountMap.get(email.accountId)}
+                  isSelected={selectedEmailIds.has(email.id)}
+                  onToggleSelect={() => toggleSelectEmail(email.id)}
+                  onClick={() => handleEmailClick(email.id)}
                 />
               ))}
             </Stack>
